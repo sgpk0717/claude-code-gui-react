@@ -53,7 +53,15 @@ export function TerminalComponent({ socket, sessionId, onKeyInput }: TerminalPro
     term.loadAddon(fitAddon);
     
     term.open(terminalRef.current);
-    fitAddon.fit();
+    
+    // 터미널이 DOM에 완전히 마운트된 후 fit 실행
+    setTimeout(() => {
+      try {
+        fitAddon.fit();
+      } catch (error) {
+        console.warn('Initial fit failed, will retry:', error);
+      }
+    }, 0);
 
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
@@ -70,7 +78,16 @@ export function TerminalComponent({ socket, sessionId, onKeyInput }: TerminalPro
 
     // 리사이즈 처리
     const handleResize = () => {
+      if (!fitAddon || !term) return;
+      
       try {
+        // 렌더러가 준비되었는지 확인
+        const renderer = (term as any)._core?._renderService?._renderer;
+        if (!renderer || !renderer.value) {
+          console.warn('Terminal renderer not ready, skipping resize');
+          return;
+        }
+        
         fitAddon.fit();
         if (socket) {
           const dimensions = fitAddon.proposeDimensions();
@@ -79,26 +96,32 @@ export function TerminalComponent({ socket, sessionId, onKeyInput }: TerminalPro
           }
         }
       } catch (error) {
-        console.error('Failed to resize terminal:', error);
+        console.warn('Failed to resize terminal:', error);
       }
     };
     
     // 터미널이 완전히 렌더링된 후에 리사이즈 처리
+    let resizeAttempts = 0;
+    const maxAttempts = 50; // 최대 5초 (100ms * 50)
+    
     const resizeTimer = setInterval(() => {
-      try {
+      resizeAttempts++;
+      
+      // 렌더러가 준비되었는지 확인
+      const renderer = (term as any)._core?._renderService?._renderer;
+      if (renderer && renderer.value) {
         handleResize();
         clearInterval(resizeTimer);
-      } catch (error) {
-        // 렌더러가 아직 준비되지 않았으면 계속 시도
+      } else if (resizeAttempts >= maxAttempts) {
+        console.warn('Terminal renderer initialization timeout');
+        clearInterval(resizeTimer);
       }
     }, 100);
-    
-    // 5초 후에는 시도 중단
-    setTimeout(() => clearInterval(resizeTimer), 5000);
     
     window.addEventListener('resize', handleResize);
 
     return () => {
+      clearInterval(resizeTimer);
       window.removeEventListener('resize', handleResize);
       term.dispose();
     };
