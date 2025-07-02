@@ -218,12 +218,17 @@ export function DraggableWindow({
       cancel=".window-controls"
       enableUserSelectHack={false}
     >
-      <div ref={nodeRef} className="absolute" style={{ zIndex: session.isActive ? 10 : 1 }}>
+      <div ref={nodeRef} style={{ 
+        position: 'absolute',
+        zIndex: session.isActive ? 10 : 1,
+        width: pixelSize.width,
+        height: pixelSize.height
+      }}>
           <div
             className={`bg-white border rounded-lg shadow-lg overflow-hidden ${
               session.isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'
             }`}
-            style={{ width: pixelSize.width, height: pixelSize.height }}
+            style={{ width: '100%', height: '100%' }}
           >
             {/* 창 헤더 */}
             <div 
