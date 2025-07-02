@@ -14,6 +14,7 @@ export function TerminalComponent({ socket, sessionId, onKeyInput }: TerminalPro
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -120,9 +121,33 @@ export function TerminalComponent({ socket, sessionId, onKeyInput }: TerminalPro
     
     window.addEventListener('resize', handleResize);
 
+    // 디바운싱된 리사이즈 핸들러
+    const debouncedResize = () => {
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      
+      resizeTimeoutRef.current = setTimeout(() => {
+        handleResize();
+      }, 100);
+    };
+
+    // ResizeObserver로 컨테이너 크기 변경 감지
+    const resizeObserver = new ResizeObserver(() => {
+      debouncedResize();
+    });
+    
+    if (terminalRef.current) {
+      resizeObserver.observe(terminalRef.current);
+    }
+
     return () => {
       clearInterval(resizeTimer);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       term.dispose();
     };
   }, [socket, onKeyInput, sessionId]);
