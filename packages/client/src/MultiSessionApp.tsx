@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { 
   ClaudeSession, 
@@ -125,7 +125,7 @@ export function MultiSessionApp() {
       {isElectron() && (
         <div 
           className="h-9 bg-gray-800 border-b border-gray-700" 
-          style={{ WebkitAppRegion: 'drag' }}
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         />
       )}
       

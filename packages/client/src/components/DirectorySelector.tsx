@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { isElectron, selectDirectory } from '../utils/electron';
 
 interface DirectorySelectorProps {

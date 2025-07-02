@@ -18,7 +18,7 @@ interface ElectronAPI {
 // Electron 환경인지 확인
 export const isElectron = (): boolean => {
   return typeof window !== 'undefined' && 
-    window.electronAPI !== undefined;
+    (window as any).electronAPI !== undefined;
 };
 
 // Electron API 가져오기

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Message, CLIStatus, Attachment } from '@claude-gui/shared';
+import { CLIStatus } from '@claude-gui/shared';
 import { TerminalComponent } from './Terminal';
 import { ImageUpload } from './ImageUpload';
 

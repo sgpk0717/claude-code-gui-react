@@ -3,6 +3,7 @@ import Draggable from 'react-draggable';
 import { Resizable } from 'react-resizable';
 import { ClaudeSession, WindowPosition, WindowSize } from '@claude-gui/shared';
 import { Socket } from 'socket.io-client';
+import { isElectron } from '../utils/electron';
 import 'react-resizable/css/styles.css';
 
 interface DraggableWindowProps {
@@ -14,6 +15,11 @@ interface DraggableWindowProps {
   onActivate: (sessionId: string) => void;
   onClose: (sessionId: string) => void;
 }
+
+// 메뉴바 높이 계산
+const getMenuBarHeight = () => {
+  return isElectron() ? 93 : 56; // Electron: 타이틀바(36px) + 메뉴바(56px), 웹: 메뉴바(56px)
+};
 
 export function DraggableWindow({
   session,
@@ -28,28 +34,28 @@ export function DraggableWindow({
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleDrag = (e: any, data: any) => {
+  const handleDrag = (_e: any, data: any) => {
     // 픽셀을 퍼센트로 변환
     const viewport = {
       width: window.innerWidth,
-      height: window.innerHeight - 60
+      height: window.innerHeight - getMenuBarHeight()
     };
     
     const percentX = (data.x / viewport.width) * 100;
-    const percentY = data.y === 60 ? 60 : ((data.y - 60) / viewport.height) * 90 + 60;
+    const percentY = (data.y / viewport.height) * 100;
     
     onMove(session.id, { x: percentX, y: percentY });
   };
 
-  const handleResize = (e: any, { size }: any) => {
+  const handleResize = (_e: any, { size }: any) => {
     // 픽셀을 퍼센트로 변환
     const viewport = {
       width: window.innerWidth,
-      height: window.innerHeight - 60
+      height: window.innerHeight - getMenuBarHeight()
     };
     
     const percentWidth = (size.width / viewport.width) * 100;
-    const percentHeight = (size.height / viewport.height) * 90;
+    const percentHeight = (size.height / viewport.height) * 100;
     
     onResize(session.id, { width: percentWidth, height: percentHeight });
   };
@@ -101,24 +107,24 @@ export function DraggableWindow({
   const getPixelPosition = () => {
     const viewport = {
       width: window.innerWidth,
-      height: window.innerHeight - 60 // 메뉴바 높이 제외
+      height: window.innerHeight - getMenuBarHeight()
     };
     
     return {
       x: (session.position.x / 100) * viewport.width,
-      y: session.position.y === 60 ? 60 : ((session.position.y - 60) / 90) * viewport.height + 60
+      y: (session.position.y / 100) * viewport.height
     };
   };
 
   const getPixelSize = () => {
     const viewport = {
       width: window.innerWidth,
-      height: window.innerHeight - 60
+      height: window.innerHeight - getMenuBarHeight()
     };
     
     return {
       width: (session.size.width / 100) * viewport.width,
-      height: (session.size.height / 90) * viewport.height
+      height: (session.size.height / 100) * viewport.height
     };
   };
 
@@ -131,7 +137,7 @@ export function DraggableWindow({
       position={pixelPosition}
       onDrag={handleDrag}
       handle=".window-header"
-      bounds={{ left: 0, top: 60, right: window.innerWidth - pixelSize.width, bottom: window.innerHeight - pixelSize.height }}
+      bounds={{ left: 0, top: 0, right: window.innerWidth - pixelSize.width, bottom: window.innerHeight - getMenuBarHeight() - pixelSize.height }}
     >
       <div ref={nodeRef} className="absolute" style={{ zIndex: session.isActive ? 10 : 1 }}>
         <Resizable
@@ -139,14 +145,14 @@ export function DraggableWindow({
           height={pixelSize.height}
           onResize={handleResize}
           minConstraints={[400, 300]}
-          maxConstraints={[window.innerWidth, window.innerHeight - 60]}
+          maxConstraints={[window.innerWidth, window.innerHeight - getMenuBarHeight()]}
         >
           <div
             className={`bg-white border rounded-lg shadow-lg overflow-hidden ${
               session.isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'
             }`}
             style={{ width: pixelSize.width, height: pixelSize.height }}
-            onClick={handleActivate}
+            onMouseDown={handleActivate}
           >
             {/* 창 헤더 */}
             <div className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b">

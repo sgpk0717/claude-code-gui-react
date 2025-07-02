@@ -213,7 +213,7 @@ export class MultiSessionManager {
     
     return {
       x: DEFAULT_WINDOW_POSITION.x + offset,
-      y: DEFAULT_WINDOW_POSITION.y + (sessionCount * 30) // 30px 씩 아래로
+      y: DEFAULT_WINDOW_POSITION.y + offset // 5% 씩 아래로
     };
   }
 

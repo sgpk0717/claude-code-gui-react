@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { LayoutTemplate, ClaudeSession } from '@claude-gui/shared';
 
 interface MenuBarProps {

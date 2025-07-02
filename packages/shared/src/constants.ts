@@ -12,7 +12,7 @@ export const LAYOUT_TEMPLATES = {
     description: '화면 전체를 사용하는 단일 창',
     maxSessions: 1,
     positions: [
-      { position: { x: 0, y: 60 }, size: { width: 100, height: 90 } }
+      { position: { x: 0, y: 0 }, size: { width: 100, height: 90 } }
     ]
   },
   
@@ -23,8 +23,8 @@ export const LAYOUT_TEMPLATES = {
     description: '화면을 좌우로 2분할',
     maxSessions: 2,
     positions: [
-      { position: { x: 0, y: 60 }, size: { width: 50, height: 90 } },
-      { position: { x: 50, y: 60 }, size: { width: 50, height: 90 } }
+      { position: { x: 0, y: 0 }, size: { width: 50, height: 90 } },
+      { position: { x: 50, y: 0 }, size: { width: 50, height: 90 } }
     ]
   },
   
@@ -34,8 +34,8 @@ export const LAYOUT_TEMPLATES = {
     description: '화면을 위아래로 2분할',
     maxSessions: 2,
     positions: [
-      { position: { x: 0, y: 60 }, size: { width: 100, height: 45 } },
-      { position: { x: 0, y: 105 }, size: { width: 100, height: 45 } }
+      { position: { x: 0, y: 0 }, size: { width: 100, height: 45 } },
+      { position: { x: 0, y: 45 }, size: { width: 100, height: 45 } }
     ]
   },
   
@@ -46,9 +46,9 @@ export const LAYOUT_TEMPLATES = {
     description: '화면을 3개 열로 분할',
     maxSessions: 3,
     positions: [
-      { position: { x: 0, y: 60 }, size: { width: 33.33, height: 90 } },
-      { position: { x: 33.33, y: 60 }, size: { width: 33.33, height: 90 } },
-      { position: { x: 66.66, y: 60 }, size: { width: 33.33, height: 90 } }
+      { position: { x: 0, y: 0 }, size: { width: 33.33, height: 90 } },
+      { position: { x: 33.33, y: 0 }, size: { width: 33.33, height: 90 } },
+      { position: { x: 66.66, y: 0 }, size: { width: 33.33, height: 90 } }
     ]
   },
   
@@ -58,9 +58,9 @@ export const LAYOUT_TEMPLATES = {
     description: '1개 큰 창 + 2개 작은 창',
     maxSessions: 3,
     positions: [
-      { position: { x: 0, y: 60 }, size: { width: 70, height: 90 } },
-      { position: { x: 70, y: 60 }, size: { width: 30, height: 45 } },
-      { position: { x: 70, y: 105 }, size: { width: 30, height: 45 } }
+      { position: { x: 0, y: 0 }, size: { width: 70, height: 90 } },
+      { position: { x: 70, y: 0 }, size: { width: 30, height: 45 } },
+      { position: { x: 70, y: 45 }, size: { width: 30, height: 45 } }
     ]
   },
   
@@ -71,16 +71,16 @@ export const LAYOUT_TEMPLATES = {
     description: '화면을 2x2 격자로 분할',
     maxSessions: 4,
     positions: [
-      { position: { x: 0, y: 60 }, size: { width: 50, height: 45 } },
-      { position: { x: 50, y: 60 }, size: { width: 50, height: 45 } },
-      { position: { x: 0, y: 105 }, size: { width: 50, height: 45 } },
-      { position: { x: 50, y: 105 }, size: { width: 50, height: 45 } }
+      { position: { x: 0, y: 0 }, size: { width: 50, height: 45 } },
+      { position: { x: 50, y: 0 }, size: { width: 50, height: 45 } },
+      { position: { x: 0, y: 45 }, size: { width: 50, height: 45 } },
+      { position: { x: 50, y: 45 }, size: { width: 50, height: 45 } }
     ]
   }
 };
 
 // 기본 창 설정
 export const DEFAULT_WINDOW_SIZE = { width: 50, height: 60 }; // 화면의 50% 너비, 60% 높이
-export const DEFAULT_WINDOW_POSITION = { x: 10, y: 70 }; // 화면 왼쪽에서 10%, 위에서 70px (메뉴바 아래)
+export const DEFAULT_WINDOW_POSITION = { x: 10, y: 10 }; // 화면 왼쪽에서 10%, 위에서 10%
 export const MIN_WINDOW_SIZE = { width: 400, height: 300 };
 export const MENU_BAR_HEIGHT = 60;
