@@ -68,6 +68,7 @@ export interface LayoutTemplate {
 export interface MultiSessionSocketEvents extends SocketEvents {
   'session:create': (workingDirectory: string, name?: string) => void;
   'session:remove': (sessionId: string) => void;
+  'session:removed': (sessionId: string) => void;
   'session:activate': (sessionId: string) => void;
   'session:move': (sessionId: string, position: WindowPosition) => void;
   'session:resize': (sessionId: string, size: WindowSize) => void;

@@ -57,6 +57,11 @@ export function MultiSessionApp() {
       setAvailableTemplates(templates);
     });
 
+    // 세션 삭제 이벤트 수신
+    newSocket.on('session:removed', (sessionId: string) => {
+      setSessions(prev => prev.filter(i => i.id !== sessionId));
+    });
+
     setSocket(newSocket);
 
     return () => {

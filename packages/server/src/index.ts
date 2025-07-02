@@ -134,7 +134,10 @@ io.on('connection', (socket) => {
   // 세션 제거
   socket.on('session:remove', (sessionId: string) => {
     console.log('Removing session:', sessionId);
-    sessionManager.removeSession(sessionId);
+    const removed = sessionManager.removeSession(sessionId);
+    if (removed) {
+      socket.emit('session:removed', sessionId);
+    }
   });
 
   // 세션 활성화

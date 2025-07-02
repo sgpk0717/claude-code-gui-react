@@ -34,7 +34,7 @@ export function DraggableWindow({
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [localPosition, setLocalPosition] = useState<{ x: number; y: number } | null>(null);
+  // const [localPosition, setLocalPosition] = useState<{ x: number; y: number } | null>(null);
   
   // 세션 데이터 확인
   console.log('Session data:', {
@@ -197,21 +197,16 @@ export function DraggableWindow({
     pixelSize,
     menuBarHeight: getMenuBarHeight(),
     viewport,
-    bounds
+    bounds,
+    // localPosition
   });
 
   return (
     <Draggable
       nodeRef={nodeRef}
-      position={localPosition || pixelPosition}
-      onStart={(_e, data) => {
-        handleDragStart();
-        setLocalPosition({ x: data.x, y: data.y });
-      }}
-      onDrag={(e, data) => {
-        setLocalPosition({ x: data.x, y: data.y });
-        handleDrag(e, data);
-      }}
+      defaultPosition={pixelPosition}
+      onStart={handleDragStart}
+      onDrag={handleDrag}
       onStop={handleDragStop}
       handle=".window-header"
       bounds={bounds}
@@ -279,7 +274,7 @@ export function DraggableWindow({
             </div>
 
             {/* 창 내용 */}
-            <div className="flex flex-col" style={{ height: pixelSize.height - 50 }}>
+            <div className="flex flex-col" style={{ height: 'calc(100% - 50px)' }}>
               {/* 터미널 영역 */}
               <div className="flex-1 overflow-hidden" onMouseDown={handleActivate}>
                 {children}
