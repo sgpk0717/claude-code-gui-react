@@ -1,0 +1,29 @@
+{
+  "name": "claude-code-gui",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev -w @claude-gui/server",
+    "dev:client": "npm run dev -w @claude-gui/client",
+    "electron": "concurrently -n \"server,client\" -c \"green,blue\" \"npm run dev:server\" \"npm run dev:client\"",
+    "electron:app": "wait-on http://localhost:7003 && wait-on http://localhost:7001 && npm run dev:electron",
+    "dev:electron": "npm run dev -w @claude-gui/electron",
+    "build": "npm run build -w @claude-gui/shared && npm run build -w @claude-gui/server && npm run build -w @claude-gui/client",
+    "build:electron": "npm run build && npm run dist -w @claude-gui/electron",
+    "start": "npm run start -w @claude-gui/server",
+    "start:electron": "npm run start -w @claude-gui/electron"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3",
+    "wait-on": "^7.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

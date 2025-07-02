@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Electron 드래그 영역 스타일 */
+[style*="-webkit-app-region: drag"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[style*="-webkit-app-region: no-drag"] {
+  -webkit-app-region: no-drag;
+}
