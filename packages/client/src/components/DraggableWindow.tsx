@@ -1,17 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Draggable from 'react-draggable';
-import { Resizable } from 'react-resizable';
-import { ClaudeSession, WindowPosition, WindowSize } from '@claude-gui/shared';
+// import { Resizable } from 'react-resizable';
+import { ClaudeSession, WindowPosition } from '@claude-gui/shared';
 import { Socket } from 'socket.io-client';
 import { isElectron } from '../utils/electron';
-import 'react-resizable/css/styles.css';
+// import 'react-resizable/css/styles.css';
 
 interface DraggableWindowProps {
   session: ClaudeSession;
   children: React.ReactNode;
   socket: Socket | null;
   onMove: (sessionId: string, position: WindowPosition) => void;
-  onResize: (sessionId: string, size: WindowSize) => void;
+  // onResize: (sessionId: string, size: WindowSize) => void;
   onActivate: (sessionId: string) => void;
   onClose: (sessionId: string) => void;
 }
@@ -26,7 +26,7 @@ export function DraggableWindow({
   children,
   socket,
   onMove,
-  onResize,
+  // onResize,
   onActivate,
   onClose
 }: DraggableWindowProps) {
@@ -44,21 +44,29 @@ export function DraggableWindow({
     const percentX = (data.x / viewport.width) * 100;
     const percentY = (data.y / viewport.height) * 100;
     
+    console.log('Drag:', { 
+      dataX: data.x, 
+      dataY: data.y, 
+      percentX, 
+      percentY,
+      viewport 
+    });
+    
     onMove(session.id, { x: percentX, y: percentY });
   };
 
-  const handleResize = (_e: any, { size }: any) => {
-    // 픽셀을 퍼센트로 변환
-    const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight - getMenuBarHeight()
-    };
-    
-    const percentWidth = (size.width / viewport.width) * 100;
-    const percentHeight = (size.height / viewport.height) * 100;
-    
-    onResize(session.id, { width: percentWidth, height: percentHeight });
-  };
+  // const handleResize = (_e: any, { size }: any) => {
+  //   // 픽셀을 퍼센트로 변환
+  //   const viewport = {
+  //     width: window.innerWidth,
+  //     height: window.innerHeight - getMenuBarHeight()
+  //   };
+  //   
+  //   const percentWidth = (size.width / viewport.width) * 100;
+  //   const percentHeight = (size.height / viewport.height) * 100;
+  //   
+  //   onResize(session.id, { width: percentWidth, height: percentHeight });
+  // };
 
   const handleActivate = () => {
     onActivate(session.id);
@@ -130,6 +138,14 @@ export function DraggableWindow({
 
   const pixelPosition = getPixelPosition();
   const pixelSize = getPixelSize();
+  
+  console.log('Window render:', {
+    sessionId: session.id,
+    sessionPosition: session.position,
+    pixelPosition,
+    pixelSize,
+    menuBarHeight: getMenuBarHeight()
+  });
 
   return (
     <Draggable
@@ -140,22 +156,14 @@ export function DraggableWindow({
       bounds={{ left: 0, top: 0, right: window.innerWidth - pixelSize.width, bottom: window.innerHeight - getMenuBarHeight() - pixelSize.height }}
     >
       <div ref={nodeRef} className="absolute" style={{ zIndex: session.isActive ? 10 : 1 }}>
-        <Resizable
-          width={pixelSize.width}
-          height={pixelSize.height}
-          onResize={handleResize}
-          minConstraints={[400, 300]}
-          maxConstraints={[window.innerWidth, window.innerHeight - getMenuBarHeight()]}
-        >
           <div
             className={`bg-white border rounded-lg shadow-lg overflow-hidden ${
               session.isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'
             }`}
             style={{ width: pixelSize.width, height: pixelSize.height }}
-            onMouseDown={handleActivate}
           >
             {/* 창 헤더 */}
-            <div className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b">
+            <div className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b" onMouseDown={handleActivate}>
               <div className="flex items-center space-x-2 min-w-0 flex-1">
                 <div
                   className={`w-3 h-3 rounded-full flex-shrink-0 ${
@@ -196,7 +204,7 @@ export function DraggableWindow({
             {/* 창 내용 */}
             <div className="flex flex-col" style={{ height: pixelSize.height - 50 }}>
               {/* 터미널 영역 */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden" onMouseDown={handleActivate}>
                 {children}
               </div>
               
@@ -224,7 +232,6 @@ export function DraggableWindow({
               </div>
             </div>
           </div>
-        </Resizable>
       </div>
     </Draggable>
   );
