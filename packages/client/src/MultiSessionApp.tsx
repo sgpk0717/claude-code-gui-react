@@ -4,6 +4,7 @@ import {
   ClaudeSession, 
   LayoutTemplate, 
   WindowPosition,
+  WindowSize,
   MultiSessionSocketEvents 
 } from '@claude-gui/shared';
 import { MenuBar } from './components/MenuBar';
@@ -93,11 +94,11 @@ export function MultiSessionApp() {
     }
   };
 
-  // const handleSessionResize = (sessionId: string, size: WindowSize) => {
-  //   if (socket) {
-  //     socket.emit('session:resize', sessionId, size);
-  //   }
-  // };
+  const handleSessionResize = (sessionId: string, size: WindowSize) => {
+    if (socket) {
+      socket.emit('session:resize', sessionId, size);
+    }
+  };
 
   const handleSessionActivate = (sessionId: string) => {
     if (socket) {
@@ -171,7 +172,7 @@ export function MultiSessionApp() {
               session={session}
               socket={socket}
               onMove={handleSessionMove}
-              // onResize={handleSessionResize}
+              onResize={handleSessionResize}
               onActivate={handleSessionActivate}
               onClose={handleSessionClose}
             >

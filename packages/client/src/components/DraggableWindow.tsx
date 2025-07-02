@@ -1,17 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Draggable from 'react-draggable';
-// import { Resizable } from 'react-resizable';
-import { ClaudeSession, WindowPosition } from '@claude-gui/shared';
+import { Resizable } from 'react-resizable';
+import { ClaudeSession, WindowPosition, WindowSize } from '@claude-gui/shared';
 import { Socket } from 'socket.io-client';
 import { isElectron } from '../utils/electron';
-// import 'react-resizable/css/styles.css';
+import 'react-resizable/css/styles.css';
 
 interface DraggableWindowProps {
   session: ClaudeSession;
   children: React.ReactNode;
   socket: Socket | null;
   onMove: (sessionId: string, position: WindowPosition) => void;
-  // onResize: (sessionId: string, size: WindowSize) => void;
+  onResize: (sessionId: string, size: WindowSize) => void;
   onActivate: (sessionId: string) => void;
   onClose: (sessionId: string) => void;
 }
@@ -26,7 +26,7 @@ export function DraggableWindow({
   children,
   socket,
   onMove,
-  // onResize,
+  onResize,
   onActivate,
   onClose
 }: DraggableWindowProps) {
@@ -34,7 +34,8 @@ export function DraggableWindow({
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  // const [localPosition, setLocalPosition] = useState<{ x: number; y: number } | null>(null);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   
   // 세션 데이터 확인
   console.log('Session data:', {
@@ -44,13 +45,21 @@ export function DraggableWindow({
     isActive: session.isActive
   });
 
-  const handleDragStart = () => {
+  const handleDragStart = (_e: any, data: any) => {
+    console.log('Drag start:', {
+      x: data.x,
+      y: data.y,
+      node: data.node
+    });
     setIsDragging(true);
   };
 
   const handleDrag = (_e: any, data: any) => {
     // 드래그 중이 아니면 무시
     if (!isDragging) return;
+    
+    // 로컬 상태 업데이트
+    setPosition({ x: data.x, y: data.y });
     
     // 픽셀을 퍼센트로 변환
     const viewport = {
@@ -70,7 +79,7 @@ export function DraggableWindow({
       isDragging
     });
     
-    // 위치 업데이트
+    // 서버로 전송
     onMove(session.id, { x: percentX, y: percentY });
   };
 
@@ -88,18 +97,22 @@ export function DraggableWindow({
     setIsDragging(false);
   };
 
-  // const handleResize = (_e: any, { size }: any) => {
-  //   // 픽셀을 퍼센트로 변환
-  //   const viewport = {
-  //     width: window.innerWidth,
-  //     height: window.innerHeight - getMenuBarHeight()
-  //   };
-  //   
-  //   const percentWidth = (size.width / viewport.width) * 100;
-  //   const percentHeight = (size.height / viewport.height) * 100;
-  //   
-  //   onResize(session.id, { width: percentWidth, height: percentHeight });
-  // };
+  const handleResize = (_e: any, { size }: any) => {
+    // 픽셀을 퍼센트로 변환
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight - getMenuBarHeight()
+    };
+    
+    const percentWidth = (size.width / viewport.width) * 100;
+    const percentHeight = (size.height / viewport.height) * 100;
+    
+    // 로컬 상태 업데이트
+    setSize({ width: size.width, height: size.height });
+    
+    // 서버로 전송
+    onResize(session.id, { width: percentWidth, height: percentHeight });
+  };
 
   const handleActivate = () => {
     onActivate(session.id);
@@ -173,8 +186,16 @@ export function DraggableWindow({
     };
   };
 
-  const pixelPosition = getPixelPosition();
-  const pixelSize = getPixelSize();
+  // 초기 위치와 크기 설정
+  useEffect(() => {
+    const pixelPos = getPixelPosition();
+    const pixelSz = getPixelSize();
+    setPosition(pixelPos);
+    setSize(pixelSz);
+  }, []); // 최초 마운트 시만
+
+  const currentPosition = position || getPixelPosition();
+  const currentSize = size || getPixelSize();
   
   // 범위 계산
   const viewport = {
@@ -185,26 +206,25 @@ export function DraggableWindow({
   const bounds = {
     left: 0,
     top: 0,
-    right: Math.max(0, viewport.width - pixelSize.width),
-    bottom: Math.max(0, viewport.height - pixelSize.height)
+    right: Math.max(0, viewport.width - currentSize.width),
+    bottom: Math.max(0, viewport.height - currentSize.height)
   };
   
   console.log('Window render:', {
     sessionId: session.id,
     sessionPosition: session.position,
     sessionSize: session.size,
-    pixelPosition,
-    pixelSize,
+    currentPosition,
+    currentSize,
     menuBarHeight: getMenuBarHeight(),
     viewport,
-    bounds,
-    // localPosition
+    bounds
   });
 
   return (
     <Draggable
       nodeRef={nodeRef}
-      defaultPosition={pixelPosition}
+      position={currentPosition}
       onStart={handleDragStart}
       onDrag={handleDrag}
       onStop={handleDragStop}
@@ -213,17 +233,19 @@ export function DraggableWindow({
       cancel=".window-controls"
       enableUserSelectHack={false}
     >
-      <div ref={nodeRef} style={{ 
-        position: 'absolute',
-        zIndex: session.isActive ? 10 : 1,
-        width: pixelSize.width,
-        height: pixelSize.height
-      }}>
+      <div ref={nodeRef} className="absolute" style={{ zIndex: session.isActive ? 10 : 1 }}>
+        <Resizable
+          width={currentSize.width}
+          height={currentSize.height}
+          onResize={handleResize}
+          minConstraints={[400, 300]}
+          maxConstraints={[window.innerWidth * 0.9, (window.innerHeight - getMenuBarHeight()) * 0.9]}
+        >
           <div
             className={`bg-white border rounded-lg shadow-lg overflow-hidden ${
               session.isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'
             }`}
-            style={{ width: '100%', height: '100%' }}
+            style={{ width: currentSize.width, height: currentSize.height }}
           >
             {/* 창 헤더 */}
             <div 
@@ -304,6 +326,7 @@ export function DraggableWindow({
               </div>
             </div>
           </div>
+        </Resizable>
       </div>
     </Draggable>
   );
