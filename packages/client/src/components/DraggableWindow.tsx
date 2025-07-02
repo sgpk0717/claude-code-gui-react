@@ -233,7 +233,7 @@ export function DraggableWindow({
       cancel=".window-controls"
       enableUserSelectHack={false}
     >
-      <div ref={nodeRef} className="absolute" style={{ zIndex: session.isActive ? 10 : 1 }}>
+      <div ref={nodeRef} className="absolute" style={{ zIndex: session.zIndex || 1 }}>
         <Resizable
           width={currentSize.width}
           height={currentSize.height}
@@ -246,17 +246,16 @@ export function DraggableWindow({
               session.isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'
             }`}
             style={{ width: currentSize.width, height: currentSize.height }}
+            onMouseDown={(e) => {
+              // 컨트롤 버튼이 아니면 활성화
+              if (!(e.target as HTMLElement).closest('.window-controls')) {
+                handleActivate();
+              }
+            }}
           >
             {/* 창 헤더 */}
             <div 
-              className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b" 
-              onMouseDown={(e) => {
-                // 버튼 클릭이 아닌 경우에만 활성화
-                const target = e.target as HTMLElement;
-                if (!target.closest('.window-controls')) {
-                  handleActivate();
-                }
-              }}
+              className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b"
             >
               <div className="flex items-center space-x-2 min-w-0 flex-1">
                 <div
@@ -298,7 +297,7 @@ export function DraggableWindow({
             {/* 창 내용 */}
             <div className="flex flex-col" style={{ height: 'calc(100% - 50px)' }}>
               {/* 터미널 영역 */}
-              <div className="flex-1 overflow-hidden" onMouseDown={handleActivate}>
+              <div className="flex-1 overflow-hidden">
                 {children}
               </div>
               

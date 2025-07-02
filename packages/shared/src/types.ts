@@ -40,6 +40,7 @@ export interface ClaudeSession {
   position: WindowPosition;
   size: WindowSize;
   isActive: boolean;
+  zIndex?: number;
   createdAt: Date;
 }
 

@@ -6,6 +6,7 @@ export class MultiSessionManager {
   private sessions: Map<string, ClaudeManager> = new Map();
   private sessionData: Map<string, ClaudeSession> = new Map();
   private activeSessionId: string | null = null;
+  private highestZIndex: number = 1;
 
   constructor() {}
 
@@ -30,6 +31,7 @@ export class MultiSessionManager {
       position: this.getNextPosition(),
       size: DEFAULT_WINDOW_SIZE,
       isActive: this.sessions.size === 0, // 첫 번째 세션은 자동으로 활성화
+      zIndex: ++this.highestZIndex,
       createdAt: new Date()
     };
 
@@ -103,8 +105,9 @@ export class MultiSessionManager {
       inst.isActive = false;
     });
 
-    // 선택된 세션 활성화
+    // 선택된 세션 활성화 및 z-index 업데이트
     session.isActive = true;
+    session.zIndex = ++this.highestZIndex;
     this.activeSessionId = sessionId;
     this.sessionData.set(sessionId, session);
     
