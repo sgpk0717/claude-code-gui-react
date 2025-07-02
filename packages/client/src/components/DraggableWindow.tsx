@@ -33,8 +33,25 @@ export function DraggableWindow({
   const nodeRef = useRef<HTMLDivElement>(null);
   const [inputText, setInputText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [localPosition, setLocalPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // 세션 데이터 확인
+  console.log('Session data:', {
+    id: session.id,
+    position: session.position,
+    size: session.size,
+    isActive: session.isActive
+  });
+
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
 
   const handleDrag = (_e: any, data: any) => {
+    // 드래그 중이 아니면 무시
+    if (!isDragging) return;
+    
     // 픽셀을 퍼센트로 변환
     const viewport = {
       width: window.innerWidth,
@@ -49,10 +66,26 @@ export function DraggableWindow({
       dataY: data.y, 
       percentX, 
       percentY,
-      viewport 
+      viewport,
+      isDragging
     });
     
+    // 위치 업데이트
     onMove(session.id, { x: percentX, y: percentY });
+  };
+
+  const handleDragStop = (_e: any, data: any) => {
+    // 드래그 종료 시에도 최종 위치 업데이트
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight - getMenuBarHeight()
+    };
+    
+    const percentX = (data.x / viewport.width) * 100;
+    const percentY = (data.y / viewport.height) * 100;
+    
+    onMove(session.id, { x: percentX, y: percentY });
+    setIsDragging(false);
   };
 
   // const handleResize = (_e: any, { size }: any) => {
@@ -130,30 +163,60 @@ export function DraggableWindow({
       height: window.innerHeight - getMenuBarHeight()
     };
     
+    // 크기가 100%를 초과하지 않도록 제한
+    const width = Math.min(session.size.width, 95);
+    const height = Math.min(session.size.height, 95);
+    
     return {
-      width: (session.size.width / 100) * viewport.width,
-      height: (session.size.height / 100) * viewport.height
+      width: (width / 100) * viewport.width,
+      height: (height / 100) * viewport.height
     };
   };
 
   const pixelPosition = getPixelPosition();
   const pixelSize = getPixelSize();
   
+  // 범위 계산
+  const viewport = {
+    width: window.innerWidth,
+    height: window.innerHeight - getMenuBarHeight()
+  };
+  
+  const bounds = {
+    left: 0,
+    top: 0,
+    right: Math.max(0, viewport.width - pixelSize.width),
+    bottom: Math.max(0, viewport.height - pixelSize.height)
+  };
+  
   console.log('Window render:', {
     sessionId: session.id,
     sessionPosition: session.position,
+    sessionSize: session.size,
     pixelPosition,
     pixelSize,
-    menuBarHeight: getMenuBarHeight()
+    menuBarHeight: getMenuBarHeight(),
+    viewport,
+    bounds
   });
 
   return (
     <Draggable
       nodeRef={nodeRef}
-      position={pixelPosition}
-      onDrag={handleDrag}
+      position={localPosition || pixelPosition}
+      onStart={(_e, data) => {
+        handleDragStart();
+        setLocalPosition({ x: data.x, y: data.y });
+      }}
+      onDrag={(e, data) => {
+        setLocalPosition({ x: data.x, y: data.y });
+        handleDrag(e, data);
+      }}
+      onStop={handleDragStop}
       handle=".window-header"
-      bounds={{ left: 0, top: 0, right: window.innerWidth - pixelSize.width, bottom: window.innerHeight - getMenuBarHeight() - pixelSize.height }}
+      bounds={bounds}
+      cancel=".window-controls"
+      enableUserSelectHack={false}
     >
       <div ref={nodeRef} className="absolute" style={{ zIndex: session.isActive ? 10 : 1 }}>
           <div
@@ -163,7 +226,16 @@ export function DraggableWindow({
             style={{ width: pixelSize.width, height: pixelSize.height }}
           >
             {/* 창 헤더 */}
-            <div className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b" onMouseDown={handleActivate}>
+            <div 
+              className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b" 
+              onMouseDown={(e) => {
+                // 버튼 클릭이 아닌 경우에만 활성화
+                const target = e.target as HTMLElement;
+                if (!target.closest('.window-controls')) {
+                  handleActivate();
+                }
+              }}
+            >
               <div className="flex items-center space-x-2 min-w-0 flex-1">
                 <div
                   className={`w-3 h-3 rounded-full flex-shrink-0 ${
@@ -176,7 +248,7 @@ export function DraggableWindow({
                 </span>
               </div>
               
-              <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
+              <div className="flex items-center space-x-1 ml-2 flex-shrink-0 window-controls">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
