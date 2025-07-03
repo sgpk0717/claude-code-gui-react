@@ -3,6 +3,8 @@ import React, { useState, KeyboardEvent, ChangeEvent, useEffect, useRef } from '
 interface InputControllerProps {
   /** 메시지가 확정되었을 때 호출될 콜백 함수 */
   onSendMessage: (message: string) => void;
+  /** 키 입력이 있을 때 호출될 콜백 함수 (Esc 등 특수키용) */
+  onKeyInput?: (key: string) => void;
   /** 플레이스홀더 텍스트 */
   placeholder?: string;
   /** 버튼 텍스트 */
@@ -17,7 +19,8 @@ interface InputControllerProps {
  */
 export const InputController: React.FC<InputControllerProps> = ({ 
   onSendMessage, 
-  placeholder = "메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)",
+  onKeyInput,
+  placeholder = "메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈, Esc: 터미널로 전송)",
   buttonText = "전송",
   disabled = false
 }) => {
@@ -36,6 +39,15 @@ export const InputController: React.FC<InputControllerProps> = ({
     // 전송 로직을 실행하지 않고 즉시 함수를 종료해야 합니다.
     // 이를 통해 마지막 글자 중복 입력 버그를 원천적으로 방지합니다.
     if (e.nativeEvent.isComposing) {
+      return;
+    }
+
+    // Esc 키는 터미널로 직접 전송 (vim 나가기, 명령어 취소 등)
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (onKeyInput && !disabled) {
+        onKeyInput('\x1b'); // ESC 문자 전송
+      }
       return;
     }
 

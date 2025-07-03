@@ -82,6 +82,15 @@ function App() {
       return;
     }
 
+    // Esc 키는 터미널로 직접 전송
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (socket) {
+        socket.emit('cli:key', '\x1b'); // ESC 문자 전송
+      }
+      return;
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -116,7 +125,7 @@ function App() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="한글 입력이 편한 곳에서 메시지를 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈)"
+                placeholder="한글 입력이 편한 곳에서 메시지를 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈, Esc로 터미널 전송)"
                 rows={3}
               />
               <div className="flex flex-col gap-2">

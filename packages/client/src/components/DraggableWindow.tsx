@@ -13,6 +13,7 @@ interface DraggableWindowProps {
   onResize: (sessionId: string, size: WindowSize) => void;
   onActivate: (sessionId: string) => void;
   onClose: (sessionId: string) => void;
+  onDuplicate: (sessionId: string) => void;
 }
 
 // 메뉴바 높이 계산
@@ -27,7 +28,8 @@ export function DraggableWindow({
   onMove,
   onResize,
   onActivate,
-  onClose
+  onClose,
+  onDuplicate
 }: DraggableWindowProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -144,6 +146,17 @@ export function DraggableWindow({
       socket.emit('cli:key', '\r', session.id);
     } catch (error) {
       console.error('Failed to send message:', error);
+    }
+  };
+
+  const handleKeyInput = (key: string) => {
+    if (!socket) return;
+    
+    try {
+      // 특수키(Esc 등)를 터미널로 직접 전송
+      socket.emit('cli:key', key, session.id);
+    } catch (error) {
+      console.error('Failed to send key:', error);
     }
   };
 
@@ -320,27 +333,72 @@ export function DraggableWindow({
               </div>
               
               <div className="flex items-center space-x-1 ml-2 flex-shrink-0 window-controls">
+                {/* 복제 버튼 */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    // 최소화 기능 (나중에 구현)
+                    onDuplicate(session.id);
                   }}
-                  className="w-3 h-3 bg-yellow-500 rounded-full hover:bg-yellow-600 transition-colors"
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // 최대화 기능 (나중에 구현)
-                  }}
-                  className="w-3 h-3 bg-green-500 rounded-full hover:bg-green-600 transition-colors"
-                />
+                  className="relative w-4 h-4 bg-blue-500 rounded-full hover:bg-blue-600 transition-all duration-300 ease-in-out group overflow-hidden"
+                >
+                  {/* 복제 아이콘 - 호버 시 회전하면서 나타남 */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transform rotate-180 group-hover:rotate-0 transition-all duration-300 ease-in-out">
+                    <svg 
+                      width="8" 
+                      height="8" 
+                      viewBox="0 0 8 8" 
+                      fill="none" 
+                      className="text-white"
+                    >
+                      {/* 두 개의 겹쳐진 사각형 (복제 의미) */}
+                      <rect 
+                        x="1" 
+                        y="1" 
+                        width="4" 
+                        height="4" 
+                        stroke="currentColor" 
+                        strokeWidth="0.8" 
+                        fill="none"
+                      />
+                      <rect 
+                        x="3" 
+                        y="3" 
+                        width="4" 
+                        height="4" 
+                        stroke="currentColor" 
+                        strokeWidth="0.8" 
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+                </button>
+                
+                {/* 닫기 버튼 */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onClose(session.id);
                   }}
-                  className="w-3 h-3 bg-red-500 rounded-full hover:bg-red-600 transition-colors"
-                />
+                  className="relative w-4 h-4 bg-red-500 rounded-full hover:bg-red-600 transition-all duration-300 ease-in-out group overflow-hidden"
+                >
+                  {/* X 아이콘 - 호버 시 회전하면서 나타남 */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transform rotate-180 group-hover:rotate-0 transition-all duration-300 ease-in-out">
+                    <svg 
+                      width="8" 
+                      height="8" 
+                      viewBox="0 0 8 8" 
+                      fill="none" 
+                      className="text-white"
+                    >
+                      <path 
+                        d="M1 1l6 6M7 1L1 7" 
+                        stroke="currentColor" 
+                        strokeWidth="1.2" 
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -354,7 +412,8 @@ export function DraggableWindow({
               {/* 텍스트 입력 영역 (각 세션별) - 새로운 InputController 사용 */}
               <InputController 
                 onSendMessage={handleSendMessage}
-                placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+                onKeyInput={handleKeyInput}
+                placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈, Esc: 터미널로 전송)"
                 disabled={!session.status.isRunning}
               />
             </div>

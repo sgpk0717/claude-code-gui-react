@@ -147,6 +147,16 @@ export function MultiSessionApp() {
     // 서버에서 session:removed 이벤트를 받아서 처리하므로 여기서는 제거하지 않음
   };
 
+  const handleSessionDuplicate = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session && socket) {
+      // 동일한 디렉토리로 새 세션 생성 (이름에 "복사본" 추가)
+      const duplicateName = `${session.name} 복사본`;
+      console.log('Duplicating session:', sessionId, 'to directory:', session.workingDirectory);
+      socket.emit('session:create', session.workingDirectory, duplicateName);
+    }
+  };
+
   const handleApplyTemplate = (templateId: string) => {
     if (socket) {
       socket.emit('layout:apply', templateId);
@@ -239,6 +249,7 @@ export function MultiSessionApp() {
                 onResize={handleSessionResize}
                 onActivate={handleSessionActivate}
                 onClose={handleSessionClose}
+                onDuplicate={handleSessionDuplicate}
               >
                 <TerminalComponent 
                   socket={socket} 
