@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Drag Issue</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { width: 800px; height: 600px; position: relative; border: 2px solid #ccc; }
+        .window { 
+            position: absolute; 
+            width: 400px; 
+            height: 300px; 
+            background: white;
+            border: 2px solid #333;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .header {
+            background: #f0f0f0;
+            padding: 10px;
+            cursor: move;
+            border-bottom: 1px solid #ccc;
+        }
+        .content { padding: 20px; }
+        #log { 
+            position: fixed; 
+            right: 20px; 
+            top: 20px; 
+            width: 400px; 
+            height: 80vh;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Drag Issue Test</h1>
+    <div class="container">
+        <div class="window" id="testWindow" style="left: 100px; top: 100px;">
+            <div class="header" id="header">Drag Me</div>
+            <div class="content">Window Content</div>
+        </div>
+    </div>
+    <div id="log"></div>
+
+    <script>
+        const logEl = document.getElementById('log');
+        const windowEl = document.getElementById('testWindow');
+        const headerEl = document.getElementById('header');
+        
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${time}] ${msg}<br>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        let isDragging = false;
+        let startX, startY;
+        let startLeft, startTop;
+        let startWidth, startHeight;
+        
+        headerEl.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            const rect = windowEl.getBoundingClientRect();
+            startLeft = windowEl.offsetLeft;
+            startTop = windowEl.offsetTop;
+            startWidth = windowEl.offsetWidth;
+            startHeight = windowEl.offsetHeight;
+            
+            log(`MOUSE DOWN - Start: (${startX}, ${startY})`);
+            log(`Window position: (${startLeft}, ${startTop})`);
+            log(`Window size: ${startWidth}x${startHeight}`);
+            log(`getBoundingClientRect: ${rect.width}x${rect.height}`);
+            
+            // 여기서 크기가 변경되는지 확인
+            setTimeout(() => {
+                const newWidth = windowEl.offsetWidth;
+                const newHeight = windowEl.offsetHeight;
+                if (newWidth !== startWidth || newHeight !== startHeight) {
+                    log(`⚠️ SIZE CHANGED AFTER MOUSEDOWN!`);
+                    log(`Size: ${startWidth}x${startHeight} -> ${newWidth}x${newHeight}`);
+                } else {
+                    log(`✅ Size remained same: ${newWidth}x${newHeight}`);
+                }
+            }, 0);
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            windowEl.style.left = (startLeft + dx) + 'px';
+            windowEl.style.top = (startTop + dy) + 'px';
+            
+            // 드래그 중 크기 체크
+            const currentWidth = windowEl.offsetWidth;
+            const currentHeight = windowEl.offsetHeight;
+            if (currentWidth !== startWidth || currentHeight !== startHeight) {
+                log(`⚠️ SIZE CHANGED DURING DRAG!`);
+                log(`Size: ${startWidth}x${startHeight} -> ${currentWidth}x${currentHeight}`);
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                log('MOUSE UP - Drag ended');
+                
+                const finalWidth = windowEl.offsetWidth;
+                const finalHeight = windowEl.offsetHeight;
+                log(`Final size: ${finalWidth}x${finalHeight}`);
+                
+                if (finalWidth !== startWidth || finalHeight !== startHeight) {
+                    log(`⚠️ TOTAL SIZE CHANGE: ${startWidth}x${startHeight} -> ${finalWidth}x${finalHeight}`);
+                }
+            }
+        });
+        
+        // 초기 상태 로그
+        log('=== INITIAL STATE ===');
+        log(`Window size: ${windowEl.offsetWidth}x${windowEl.offsetHeight}`);
+        log(`Window position: (${windowEl.offsetLeft}, ${windowEl.offsetTop})`);
+    </script>
+</body>
+</html>

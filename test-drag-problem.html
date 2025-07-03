@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Drag Problem Test</title>
+    <style>
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #f0f0f0;
+        }
+        
+        .window {
+            position: absolute;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            background: #ddd;
+            padding: 10px;
+            cursor: move;
+            border-bottom: 1px solid #ccc;
+            border-radius: 6px 6px 0 0;
+        }
+        
+        .content {
+            padding: 20px;
+            height: 300px;
+        }
+        
+        #log {
+            position: fixed;
+            right: 10px;
+            top: 10px;
+            width: 400px;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 90vh;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+        }
+        
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="window1" class="window" style="left: 100px; top: 100px; width: 400px;">
+            <div class="header">Window 1 - Drag Me</div>
+            <div class="content">Content 1</div>
+        </div>
+    </div>
+    
+    <div id="log">
+        <h3>Event Log</h3>
+        <button onclick="clearLog()">Clear</button>
+        <div id="logContent"></div>
+    </div>
+
+    <script>
+        const logEl = document.getElementById('logContent');
+        const window1 = document.getElementById('window1');
+        const header1 = window1.querySelector('.header');
+        
+        let isDragging = false;
+        let startX, startY;
+        let startLeft, startTop;
+        let initialWidth, initialHeight;
+        
+        function log(msg, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function clearLog() {
+            logEl.innerHTML = '';
+        }
+        
+        // 초기 상태 로그
+        log('Initial window size: ' + window1.offsetWidth + 'x' + window1.offsetHeight);
+        
+        header1.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            const rect = window1.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            initialWidth = window1.offsetWidth;
+            initialHeight = window1.offsetHeight;
+            
+            log('=== DRAG START ===', 'info');
+            log('Mouse position: ' + startX + ', ' + startY);
+            log('Window position: ' + startLeft + ', ' + startTop);
+            log('Window size at start: ' + initialWidth + 'x' + initialHeight);
+            
+            // 스타일 확인
+            const computedStyle = window.getComputedStyle(window1);
+            log('Computed width: ' + computedStyle.width);
+            log('Computed height: ' + computedStyle.height);
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            window1.style.left = (startLeft + dx) + 'px';
+            window1.style.top = (startTop + dy) + 'px';
+            
+            // 크기 변화 체크
+            const currentWidth = window1.offsetWidth;
+            const currentHeight = window1.offsetHeight;
+            
+            if (currentWidth !== initialWidth || currentHeight !== initialHeight) {
+                log('SIZE CHANGED DURING DRAG!', 'error');
+                log('Size: ' + initialWidth + 'x' + initialHeight + ' → ' + currentWidth + 'x' + currentHeight, 'error');
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                
+                const finalWidth = window1.offsetWidth;
+                const finalHeight = window1.offsetHeight;
+                
+                log('=== DRAG END ===', 'info');
+                log('Final size: ' + finalWidth + 'x' + finalHeight);
+                
+                if (finalWidth !== initialWidth || finalHeight !== initialHeight) {
+                    log('TOTAL SIZE CHANGE: ' + initialWidth + 'x' + initialHeight + ' → ' + finalWidth + 'x' + finalHeight, 'error');
+                } else {
+                    log('Size remained constant', 'success');
+                }
+            }
+        });
+        
+        // React Draggable 시뮬레이션
+        function simulateReactDraggable() {
+            log('\n=== SIMULATING REACT DRAGGABLE ===', 'info');
+            
+            // transform 사용
+            window1.style.transform = 'translate(50px, 50px)';
+            log('Applied transform: translate(50px, 50px)');
+            log('Size after transform: ' + window1.offsetWidth + 'x' + window1.offsetHeight);
+            
+            setTimeout(() => {
+                window1.style.transform = '';
+                log('Removed transform');
+                log('Size after removing transform: ' + window1.offsetWidth + 'x' + window1.offsetHeight);
+            }, 2000);
+        }
+        
+        // 테스트 버튼 추가
+        const button = document.createElement('button');
+        button.textContent = 'Test React Draggable Transform';
+        button.onclick = simulateReactDraggable;
+        button.style.position = 'fixed';
+        button.style.bottom = '10px';
+        button.style.left = '10px';
+        document.body.appendChild(button);
+    </script>
+</body>
+</html>

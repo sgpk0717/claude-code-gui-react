@@ -1,10 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Draggable from 'react-draggable';
-import { Resizable } from 'react-resizable';
 import { ClaudeSession, WindowPosition, WindowSize } from '@claude-gui/shared';
 import { Socket } from 'socket.io-client';
 import { isElectron } from '../utils/electron';
-import 'react-resizable/css/styles.css';
 
 interface DraggableWindowProps {
   session: ClaudeSession;
@@ -36,6 +34,13 @@ export function DraggableWindow({
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  
+  // 리사이징 상태
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeDirection, setResizeDirection] = useState<string>('');
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
+  const [sizeStart, setSizeStart] = useState({ width: 0, height: 0 });
+  const [positionStart, setPositionStart] = useState({ x: 0, y: 0 });
   
   // 세션 데이터 확인
   console.log('Session data:', {
@@ -97,21 +102,29 @@ export function DraggableWindow({
     setIsDragging(false);
   };
 
-  const handleResize = (_e: any, { size }: any) => {
-    // 픽셀을 퍼센트로 변환
-    const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight - getMenuBarHeight()
+  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeDirection(direction);
+    setResizeStart({ x: e.clientX, y: e.clientY });
+    setSizeStart(currentSize);
+    setPositionStart(currentPosition);
+    document.body.style.cursor = getCursorForDirection(direction);
+  };
+  
+  const getCursorForDirection = (direction: string) => {
+    const cursorMap: { [key: string]: string } = {
+      'top': 'ns-resize',
+      'right': 'ew-resize',
+      'bottom': 'ns-resize',
+      'left': 'ew-resize',
+      'top-left': 'nwse-resize',
+      'top-right': 'nesw-resize',
+      'bottom-left': 'nesw-resize',
+      'bottom-right': 'nwse-resize'
     };
-    
-    const percentWidth = (size.width / viewport.width) * 100;
-    const percentHeight = (size.height / viewport.height) * 100;
-    
-    // 로컬 상태 업데이트
-    setSize({ width: size.width, height: size.height });
-    
-    // 서버로 전송
-    onResize(session.id, { width: percentWidth, height: percentHeight });
+    return cursorMap[direction] || 'default';
   };
 
   const handleActivate = () => {
@@ -193,6 +206,73 @@ export function DraggableWindow({
     setPosition(pixelPos);
     setSize(pixelSz);
   }, []); // 최초 마운트 시만
+  
+  // 리사이징 처리
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
+      
+      let newWidth = sizeStart.width;
+      let newHeight = sizeStart.height;
+      let newX = positionStart.x;
+      let newY = positionStart.y;
+      
+      // 방향에 따른 크기 조절
+      if (resizeDirection.includes('right')) {
+        newWidth = Math.max(400, sizeStart.width + deltaX);
+      }
+      if (resizeDirection.includes('left')) {
+        newWidth = Math.max(400, sizeStart.width - deltaX);
+        newX = positionStart.x + (sizeStart.width - newWidth);
+      }
+      if (resizeDirection.includes('bottom')) {
+        newHeight = Math.max(300, sizeStart.height + deltaY);
+      }
+      if (resizeDirection.includes('top')) {
+        newHeight = Math.max(300, sizeStart.height - deltaY);
+        newY = positionStart.y + (sizeStart.height - newHeight);
+      }
+      
+      // 로컬 상태 업데이트
+      setSize({ width: newWidth, height: newHeight });
+      setPosition({ x: newX, y: newY });
+    };
+    
+    const handleMouseUp = () => {
+      if (!isResizing) return;
+      
+      // 서버로 전송
+      const viewport = {
+        width: window.innerWidth,
+        height: window.innerHeight - getMenuBarHeight()
+      };
+      
+      const percentWidth = (size!.width / viewport.width) * 100;
+      const percentHeight = (size!.height / viewport.height) * 100;
+      const percentX = (position!.x / viewport.width) * 100;
+      const percentY = (position!.y / viewport.height) * 100;
+      
+      onResize(session.id, { width: percentWidth, height: percentHeight });
+      onMove(session.id, { x: percentX, y: percentY });
+      
+      setIsResizing(false);
+      setResizeDirection('');
+      document.body.style.cursor = '';
+    };
+    
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing, resizeDirection, resizeStart, sizeStart, positionStart, position, size, session.id, onResize, onMove]);
 
   const currentPosition = position || getPixelPosition();
   const currentSize = size || getPixelSize();
@@ -230,29 +310,22 @@ export function DraggableWindow({
       onStop={handleDragStop}
       handle=".window-header"
       bounds={bounds}
-      cancel=".window-controls"
+      cancel=".window-controls, .resize-handle"
       enableUserSelectHack={false}
     >
       <div ref={nodeRef} className="absolute" style={{ zIndex: session.zIndex || 1 }}>
-        <Resizable
-          width={currentSize.width}
-          height={currentSize.height}
-          onResize={handleResize}
-          minConstraints={[400, 300]}
-          maxConstraints={[window.innerWidth * 0.9, (window.innerHeight - getMenuBarHeight()) * 0.9]}
+        <div
+          className={`bg-white border rounded-lg shadow-lg overflow-hidden relative ${
+            session.isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'
+          }`}
+          style={{ width: currentSize.width, height: currentSize.height }}
+          onMouseDown={(e) => {
+            // 컨트롤 버튼이 아니면 활성화
+            if (!(e.target as HTMLElement).closest('.window-controls')) {
+              handleActivate();
+            }
+          }}
         >
-          <div
-            className={`bg-white border rounded-lg shadow-lg overflow-hidden ${
-              session.isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'
-            }`}
-            style={{ width: currentSize.width, height: currentSize.height }}
-            onMouseDown={(e) => {
-              // 컨트롤 버튼이 아니면 활성화
-              if (!(e.target as HTMLElement).closest('.window-controls')) {
-                handleActivate();
-              }
-            }}
-          >
             {/* 창 헤더 */}
             <div 
               className="window-header bg-gray-100 px-4 py-2 flex items-center justify-between cursor-move border-b"
@@ -324,8 +397,44 @@ export function DraggableWindow({
                 </div>
               </div>
             </div>
-          </div>
-        </Resizable>
+          
+          {/* 리사이즈 핸들들 */}
+          {/* 모서리 */}
+          <div
+            className="resize-handle absolute top-0 left-0 w-3 h-3 cursor-nwse-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'top-left')}
+          />
+          <div
+            className="resize-handle absolute top-0 right-0 w-3 h-3 cursor-nesw-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'top-right')}
+          />
+          <div
+            className="resize-handle absolute bottom-0 left-0 w-3 h-3 cursor-nesw-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'bottom-left')}
+          />
+          <div
+            className="resize-handle absolute bottom-0 right-0 w-3 h-3 cursor-nwse-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
+          />
+          
+          {/* 변 */}
+          <div
+            className="resize-handle absolute top-0 left-3 right-3 h-1 cursor-ns-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'top')}
+          />
+          <div
+            className="resize-handle absolute bottom-0 left-3 right-3 h-1 cursor-ns-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+          />
+          <div
+            className="resize-handle absolute left-0 top-3 bottom-3 w-1 cursor-ew-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'left')}
+          />
+          <div
+            className="resize-handle absolute right-0 top-3 bottom-3 w-1 cursor-ew-resize"
+            onMouseDown={(e) => handleResizeStart(e, 'right')}
+          />
+        </div>
       </div>
     </Draggable>
   );

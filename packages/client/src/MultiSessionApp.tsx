@@ -11,6 +11,7 @@ import { MenuBar } from './components/MenuBar';
 import { DraggableWindow } from './components/DraggableWindow';
 import { DirectorySelector } from './components/DirectorySelector';
 import { TerminalComponent } from './Terminal';
+import { Sidebar } from './components/Sidebar';
 import { isElectron } from './utils/electron';
 
 export function MultiSessionApp() {
@@ -19,6 +20,7 @@ export function MultiSessionApp() {
   const [sessions, setSessions] = useState<ClaudeSession[]>([]);
   const [availableTemplates, setAvailableTemplates] = useState<LayoutTemplate[]>([]);
   const [showDirectorySelector, setShowDirectorySelector] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     const newSocket = io('/', {
@@ -120,8 +122,15 @@ export function MultiSessionApp() {
     }
   };
 
-  const handleShowDirectorySelector = () => {
-    setShowDirectorySelector(true);
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleSelectSession = (sessionId: string) => {
+    if (socket) {
+      socket.emit('session:activate', sessionId);
+    }
   };
 
   return (
@@ -140,11 +149,27 @@ export function MultiSessionApp() {
         availableTemplates={availableTemplates}
         onCreateSession={handleCreateSession}
         onApplyTemplate={handleApplyTemplate}
-        onSelectDirectory={handleShowDirectorySelector}
+        onToggleSidebar={handleToggleSidebar}
+      />
+
+      {/* 사이드바 */}
+      <Sidebar
+        sessions={sessions}
+        isOpen={isSidebarOpen}
+        onSelectSession={handleSelectSession}
+        onCloseSession={handleSessionClose}
+        onCreateSession={handleCreateSession}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* 메인 작업 영역 */}
-      <div className="relative" style={{ height: isElectron() ? 'calc(100vh - 96px)' : 'calc(100vh - 56px)' }}>
+      <div 
+        className="relative transition-all duration-300 ease-in-out"
+        style={{ 
+          height: isElectron() ? 'calc(100vh - 96px)' : 'calc(100vh - 56px)',
+          marginLeft: isSidebarOpen ? '256px' : '0'
+        }}
+      >
         {sessions.length === 0 ? (
           // 빈 상태
           <div className="flex items-center justify-center h-full">
