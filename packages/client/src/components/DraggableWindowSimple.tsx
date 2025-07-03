@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { ClaudeSession, WindowPosition, WindowSize } from '@claude-gui/shared';
 import { Socket } from 'socket.io-client';
 import { isElectron } from '../utils/electron';
+import { InputController } from './InputController';
 
 interface DraggableWindowProps {
   session: ClaudeSession;
@@ -27,8 +28,6 @@ export function DraggableWindowSimple({
   onClose
 }: DraggableWindowProps) {
   const windowRef = useRef<HTMLDivElement>(null);
-  const [inputText, setInputText] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // 드래그 상태
   const [isDragging, setIsDragging] = useState(false);
@@ -162,13 +161,10 @@ export function DraggableWindowSimple({
     onActivate(session.id);
   };
   
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || !socket) return;
+  const handleSendMessage = async (message: string) => {
+    if (!message.trim() || !socket) return;
     
     try {
-      const message = inputText;
-      setInputText('');
-      
       for (const char of message) {
         socket.emit('cli:key', char, session.id);
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -179,17 +175,6 @@ export function DraggableWindowSimple({
       console.error('Failed to send message:', error);
     }
   };
-  
-  const adjustTextareaHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
-    }
-  };
-
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [inputText]);
   
   return (
     <div
@@ -255,32 +240,12 @@ export function DraggableWindowSimple({
             {children}
           </div>
           
-          {/* 입력 영역 */}
-          <div className="border-t bg-gray-50 p-3">
-            <div className="flex gap-2">
-              <textarea
-                ref={textareaRef}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                style={{ minHeight: '40px' }}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!inputText.trim()}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-md font-medium transition-colors"
-              >
-                전송
-              </button>
-            </div>
-          </div>
+          {/* 입력 영역 - 새로운 InputController 사용 */}
+          <InputController 
+            onSendMessage={handleSendMessage}
+            placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+            disabled={!session.status.isRunning}
+          />
         </div>
         
         {/* 리사이즈 핸들 */}

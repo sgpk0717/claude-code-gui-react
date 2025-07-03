@@ -3,6 +3,7 @@ import Draggable from 'react-draggable';
 import { ClaudeSession, WindowPosition, WindowSize } from '@claude-gui/shared';
 import { Socket } from 'socket.io-client';
 import { isElectron } from '../utils/electron';
+import { InputController } from './InputController';
 
 interface DraggableWindowProps {
   session: ClaudeSession;
@@ -29,8 +30,6 @@ export function DraggableWindow({
   onClose
 }: DraggableWindowProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
-  const [inputText, setInputText] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
@@ -131,13 +130,10 @@ export function DraggableWindow({
     onActivate(session.id);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || !socket) return;
+  const handleSendMessage = async (message: string) => {
+    if (!message.trim() || !socket) return;
     
     try {
-      const message = inputText;
-      setInputText('');
-      
       // 각 문자를 개별적으로 전송 (Claude CLI에서 올바르게 처리되도록)
       for (const char of message) {
         socket.emit('cli:key', char, session.id);
@@ -150,25 +146,6 @@ export function DraggableWindow({
       console.error('Failed to send message:', error);
     }
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const adjustTextareaHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const newHeight = Math.min(textareaRef.current.scrollHeight, 100);
-      textareaRef.current.style.height = `${newHeight}px`;
-    }
-  };
-
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [inputText]);
 
   // 픽셀 단위로 변환 (퍼센트 -> 픽셀)
   const getPixelPosition = () => {
@@ -374,28 +351,12 @@ export function DraggableWindow({
                 {children}
               </div>
               
-              {/* 텍스트 입력 영역 (각 세션별) */}
-              <div className="border-t bg-gray-50 p-3">
-                <div className="flex space-x-2">
-                  <textarea
-                    ref={textareaRef}
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    style={{ minHeight: '40px', maxHeight: '100px' }}
-                    rows={1}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!inputText.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                  >
-                    전송
-                  </button>
-                </div>
-              </div>
+              {/* 텍스트 입력 영역 (각 세션별) - 새로운 InputController 사용 */}
+              <InputController 
+                onSendMessage={handleSendMessage}
+                placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+                disabled={!session.status.isRunning}
+              />
             </div>
           
           {/* 리사이즈 핸들들 */}

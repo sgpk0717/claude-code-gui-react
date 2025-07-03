@@ -76,6 +76,12 @@ function App() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // IME 조합 중(한글 입력 중)에는 Enter 키 이벤트를 처리하지 않습니다.
+    // 이것이 한글 중복 입력 문제의 핵심 해결책입니다.
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
