@@ -133,10 +133,23 @@ io.on('connection', (socket) => {
 
   // 세션 제거
   socket.on('session:remove', (sessionId: string) => {
-    console.log('Removing session:', sessionId);
+    console.log('[Socket] session:remove event received:', sessionId);
     const removed = sessionManager.removeSession(sessionId);
     if (removed) {
+      console.log('[Socket] Emitting session:removed:', sessionId);
       socket.emit('session:removed', sessionId);
+      
+      // 약간의 지연 후 남은 세션 업데이트 (상태 동기화를 위해)
+      setTimeout(() => {
+        const remainingSessions = sessionManager.getAllSessions();
+        console.log('[Socket] Remaining sessions to update:', remainingSessions.map(s => s.id));
+        remainingSessions.forEach(session => {
+          console.log('[Socket] Emitting session:update for:', session.id);
+          socket.emit('session:update', session);
+        });
+      }, 100);
+    } else {
+      console.log('[Socket] Failed to remove session:', sessionId);
     }
   });
 

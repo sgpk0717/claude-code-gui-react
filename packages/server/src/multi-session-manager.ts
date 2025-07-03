@@ -65,10 +65,12 @@ export class MultiSessionManager {
   }
 
   removeSession(sessionId: string): boolean {
+    console.log('[Server] removeSession called for:', sessionId);
     const claudeManager = this.sessions.get(sessionId);
     const session = this.sessionData.get(sessionId);
     
     if (!claudeManager || !session) {
+      console.log('[Server] Session not found:', sessionId);
       return false;
     }
 
@@ -80,7 +82,10 @@ export class MultiSessionManager {
       const remainingSessions = Array.from(this.sessionData.values())
         .filter(i => i.id !== sessionId);
       
+      console.log('[Server] Remaining sessions:', remainingSessions.map(s => s.id));
+      
       if (remainingSessions.length > 0) {
+        console.log('[Server] Activating session:', remainingSessions[0].id);
         this.activateSession(remainingSessions[0].id);
       } else {
         this.activeSessionId = null;
@@ -90,6 +95,9 @@ export class MultiSessionManager {
     // 제거
     this.sessions.delete(sessionId);
     this.sessionData.delete(sessionId);
+    
+    console.log('[Server] Session removed successfully:', sessionId);
+    console.log('[Server] Current sessions:', Array.from(this.sessionData.keys()));
     
     return true;
   }

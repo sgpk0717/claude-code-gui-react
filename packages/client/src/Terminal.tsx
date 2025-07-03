@@ -82,8 +82,15 @@ export function TerminalComponent({ socket, sessionId, onKeyInput }: TerminalPro
       if (!fitAddon || !term) return;
       
       try {
+        // 터미널이 dispose되었는지 확인
+        const core = (term as any)._core;
+        if (!core || core._isDisposed) {
+          console.warn('Terminal disposed, skipping resize');
+          return;
+        }
+        
         // 렌더러가 준비되었는지 확인
-        const renderer = (term as any)._core?._renderService?._renderer;
+        const renderer = core._renderService?._renderer;
         if (!renderer || !renderer.value) {
           console.warn('Terminal renderer not ready, skipping resize');
           return;
@@ -142,13 +149,23 @@ export function TerminalComponent({ socket, sessionId, onKeyInput }: TerminalPro
     }
 
     return () => {
+      console.log('Terminal cleanup for session:', sessionId);
       clearInterval(resizeTimer);
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
       }
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
-      term.dispose();
+      
+      // 터미널이 이미 dispose되지 않았는지 확인
+      try {
+        const core = (term as any)._core;
+        if (core && !core._isDisposed) {
+          term.dispose();
+        }
+      } catch (error) {
+        console.warn('Error disposing terminal:', error);
+      }
     };
   }, [socket, onKeyInput, sessionId]);
 

@@ -9,6 +9,7 @@ interface SidebarProps {
   onCloseSession: (sessionId: string) => void;
   onCreateSession: () => void;
   onClose?: () => void;
+  onWidthChange?: (width: number) => void;
 }
 
 export function Sidebar({ 
@@ -17,13 +18,19 @@ export function Sidebar({
   onSelectSession, 
   onCloseSession,
   onCreateSession,
-  onClose
+  onClose,
+  onWidthChange
 }: SidebarProps) {
   const activeSession = sessions.find(s => s.isActive);
   const [width, setWidth] = useState(256); // 기본 너비 256px (w-64)
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
+  
+  // 초기 너비 전달
+  useEffect(() => {
+    onWidthChange?.(width);
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     isResizing.current = true;
@@ -40,6 +47,7 @@ export function Sidebar({
       const deltaX = e.clientX - startX.current;
       const newWidth = Math.max(200, Math.min(400, startWidth.current + deltaX));
       setWidth(newWidth);
+      onWidthChange?.(newWidth);
     };
 
     const handleMouseUp = () => {

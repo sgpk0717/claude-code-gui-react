@@ -21,6 +21,8 @@ export function MultiSessionApp() {
   const [availableTemplates, setAvailableTemplates] = useState<LayoutTemplate[]>([]);
   const [showDirectorySelector, setShowDirectorySelector] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [removedSessions, setRemovedSessions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const newSocket = io('/', {
@@ -41,17 +43,31 @@ export function MultiSessionApp() {
 
     // 세션 업데이트 수신
     newSocket.on('session:update', (session: ClaudeSession) => {
-      setSessions(prev => {
-        const index = prev.findIndex(i => i.id === session.id);
-        if (index >= 0) {
-          // 기존 세션 업데이트
-          const updated = [...prev];
-          updated[index] = session;
-          return updated;
-        } else {
-          // 새 세션 추가
-          return [...prev, session];
+      console.log('Session update event received:', session.id);
+      
+      // 제거된 세션인지 확인
+      setRemovedSessions(removed => {
+        if (removed.has(session.id)) {
+          console.log('Ignoring update for removed session:', session.id);
+          return removed;
         }
+        
+        setSessions(prev => {
+          const index = prev.findIndex(i => i.id === session.id);
+          if (index >= 0) {
+            // 기존 세션 업데이트
+            const updated = [...prev];
+            updated[index] = session;
+            console.log('Updated existing session:', session.id);
+            return updated;
+          } else {
+            // 새 세션 추가
+            console.log('Adding new session:', session.id);
+            return [...prev, session];
+          }
+        });
+        
+        return removed;
       });
     });
 
@@ -62,12 +78,26 @@ export function MultiSessionApp() {
 
     // 세션 삭제 이벤트 수신
     newSocket.on('session:removed', (sessionId: string) => {
-      setSessions(prev => prev.filter(i => i.id !== sessionId));
+      console.log('Session removed event received:', sessionId);
+      
+      // 제거된 세션 목록에 추가
+      setRemovedSessions(prev => new Set(prev).add(sessionId));
+      
+      setSessions(prev => {
+        console.log('Previous sessions:', prev.map(s => s.id));
+        const filtered = prev.filter(i => i.id !== sessionId);
+        console.log('Filtered sessions:', filtered.map(s => s.id));
+        return filtered;
+      });
     });
 
     setSocket(newSocket);
 
     return () => {
+      console.log('Cleaning up socket listeners');
+      newSocket.off('session:update');
+      newSocket.off('session:removed');
+      newSocket.off('layout:templates');
       newSocket.close();
     };
   }, []);
@@ -109,11 +139,12 @@ export function MultiSessionApp() {
   };
 
   const handleSessionClose = (sessionId: string) => {
+    console.log('handleSessionClose called for:', sessionId);
     if (socket) {
+      console.log('Emitting session:remove for:', sessionId);
       socket.emit('session:remove', sessionId);
     }
-    // 로컬 상태에서도 제거
-    setSessions(prev => prev.filter(i => i.id !== sessionId));
+    // 서버에서 session:removed 이벤트를 받아서 처리하므로 여기서는 제거하지 않음
   };
 
   const handleApplyTemplate = (templateId: string) => {
@@ -133,6 +164,8 @@ export function MultiSessionApp() {
     }
   };
 
+  console.log('Current sessions in state:', sessions.map(s => s.id));
+  
   return (
     <div className="h-screen bg-gray-100 relative overflow-hidden">
       {/* macOS 타이틀바 영역 (Electron 전용) */}
@@ -160,6 +193,7 @@ export function MultiSessionApp() {
         onCloseSession={handleSessionClose}
         onCreateSession={handleCreateSession}
         onClose={() => setIsSidebarOpen(false)}
+        onWidthChange={setSidebarWidth}
       />
 
       {/* 메인 작업 영역 */}
@@ -167,7 +201,7 @@ export function MultiSessionApp() {
         className="relative transition-all duration-300 ease-in-out"
         style={{ 
           height: isElectron() ? 'calc(100vh - 96px)' : 'calc(100vh - 56px)',
-          marginLeft: isSidebarOpen ? '256px' : '0'
+          marginLeft: isSidebarOpen ? `${sidebarWidth}px` : '0'
         }}
       >
         {sessions.length === 0 ? (
@@ -191,22 +225,28 @@ export function MultiSessionApp() {
           </div>
         ) : (
           // 세션들
-          sessions.map((session) => (
-            <DraggableWindow
-              key={session.id}
-              session={session}
-              socket={socket}
-              onMove={handleSessionMove}
-              onResize={handleSessionResize}
-              onActivate={handleSessionActivate}
-              onClose={handleSessionClose}
-            >
-              <TerminalComponent 
-                socket={socket} 
-                sessionId={session.id}
-              />
-            </DraggableWindow>
-          ))
+          sessions.filter(session => {
+            // 혹시 undefined나 null 세션이 있으면 필터링
+            return session && session.id;
+          }).map((session) => {
+            console.log('Rendering session:', session.id);
+            return (
+              <DraggableWindow
+                key={session.id}
+                session={session}
+                socket={socket}
+                onMove={handleSessionMove}
+                onResize={handleSessionResize}
+                onActivate={handleSessionActivate}
+                onClose={handleSessionClose}
+              >
+                <TerminalComponent 
+                  socket={socket} 
+                  sessionId={session.id}
+                />
+              </DraggableWindow>
+            );
+          })
         )}
       </div>
 
