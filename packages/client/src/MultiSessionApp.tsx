@@ -43,12 +43,12 @@ export function MultiSessionApp() {
 
     // 세션 업데이트 수신
     newSocket.on('session:update', (session: ClaudeSession) => {
-      console.log('Session update event received:', session.id);
+      // console.log('Session update event received:', session.id);
       
       // 제거된 세션인지 확인
       setRemovedSessions(removed => {
         if (removed.has(session.id)) {
-          console.log('Ignoring update for removed session:', session.id);
+          // console.log('Ignoring update for removed session:', session.id);
           return removed;
         }
         
@@ -58,11 +58,11 @@ export function MultiSessionApp() {
             // 기존 세션 업데이트
             const updated = [...prev];
             updated[index] = session;
-            console.log('Updated existing session:', session.id);
+            // console.log('Updated existing session:', session.id);
             return updated;
           } else {
             // 새 세션 추가
-            console.log('Adding new session:', session.id);
+            // console.log('Adding new session:', session.id);
             return [...prev, session];
           }
         });
@@ -78,15 +78,15 @@ export function MultiSessionApp() {
 
     // 세션 삭제 이벤트 수신
     newSocket.on('session:removed', (sessionId: string) => {
-      console.log('Session removed event received:', sessionId);
+      // console.log('Session removed event received:', sessionId);
       
       // 제거된 세션 목록에 추가
       setRemovedSessions(prev => new Set(prev).add(sessionId));
       
       setSessions(prev => {
-        console.log('Previous sessions:', prev.map(s => s.id));
+        // console.log('Previous sessions:', prev.map(s => s.id));
         const filtered = prev.filter(i => i.id !== sessionId);
-        console.log('Filtered sessions:', filtered.map(s => s.id));
+        // console.log('Filtered sessions:', filtered.map(s => s.id));
         return filtered;
       });
     });
@@ -174,7 +174,7 @@ export function MultiSessionApp() {
     }
   };
 
-  console.log('Current sessions in state:', sessions.map(s => s.id));
+  // console.log('Current sessions in state:', sessions.map(s => s.id));
   
   return (
     <div className="h-screen bg-gray-100 relative overflow-hidden">
@@ -239,7 +239,7 @@ export function MultiSessionApp() {
             // 혹시 undefined나 null 세션이 있으면 필터링
             return session && session.id;
           }).map((session) => {
-            console.log('Rendering session:', session.id);
+            // console.log('Rendering session:', session.id);
             return (
               <DraggableWindow
                 key={session.id}

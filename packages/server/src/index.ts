@@ -208,7 +208,7 @@ io.on('connection', (socket) => {
 
   // 키 입력 처리 (특정 세션용)
   socket.on('cli:key', (key: string, sessionId?: string) => {
-    console.log('Received key for session:', sessionId, JSON.stringify(key));
+    // console.log('Received key for session:', sessionId, JSON.stringify(key));
     
     if (sessionId) {
       sessionManager.sendInput(sessionId, key);

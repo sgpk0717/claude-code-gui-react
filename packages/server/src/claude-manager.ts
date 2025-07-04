@@ -78,8 +78,8 @@ export class ClaudeManager {
       return;
     }
 
-    console.log('Writing to PTY:', JSON.stringify(input));
-    console.log('Input bytes:', Buffer.from(input).toJSON());
+    // console.log('Writing to PTY:', JSON.stringify(input));
+    // console.log('Input bytes:', Buffer.from(input).toJSON());
     this.ptyProcess.write(input);
   }
 

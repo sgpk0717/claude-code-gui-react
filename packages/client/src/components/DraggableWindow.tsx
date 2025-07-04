@@ -43,20 +43,20 @@ export function DraggableWindow({
   const [sizeStart, setSizeStart] = useState({ width: 0, height: 0 });
   const [positionStart, setPositionStart] = useState({ x: 0, y: 0 });
   
-  // 세션 데이터 확인
-  console.log('Session data:', {
-    id: session.id,
-    position: session.position,
-    size: session.size,
-    isActive: session.isActive
-  });
+  // 세션 데이터 확인 (디버깅 시에만 활성화)
+  // console.log('Session data:', {
+  //   id: session.id,
+  //   position: session.position,
+  //   size: session.size,
+  //   isActive: session.isActive
+  // });
 
   const handleDragStart = (_e: any, data: any) => {
-    console.log('Drag start:', {
-      x: data.x,
-      y: data.y,
-      node: data.node
-    });
+    // console.log('Drag start:', {
+    //   x: data.x,
+    //   y: data.y,
+    //   node: data.node
+    // });
     setIsDragging(true);
   };
 
@@ -76,14 +76,14 @@ export function DraggableWindow({
     const percentX = (data.x / viewport.width) * 100;
     const percentY = (data.y / viewport.height) * 100;
     
-    console.log('Drag:', { 
-      dataX: data.x, 
-      dataY: data.y, 
-      percentX, 
-      percentY,
-      viewport,
-      isDragging
-    });
+    // console.log('Drag:', { 
+    //   dataX: data.x, 
+    //   dataY: data.y, 
+    //   percentX, 
+    //   percentY,
+    //   viewport,
+    //   isDragging
+    // });
     
     // 서버로 전송
     onMove(session.id, { x: percentX, y: percentY });
@@ -229,6 +229,9 @@ export function DraggableWindow({
       // 로컬 상태 업데이트
       setSize({ width: newWidth, height: newHeight });
       setPosition({ x: newX, y: newY });
+      
+      // 터미널에 리사이즈 이벤트 전달
+      window.dispatchEvent(new Event('terminal-resize'));
     };
     
     const handleMouseUp = () => {
@@ -251,6 +254,11 @@ export function DraggableWindow({
       setIsResizing(false);
       setResizeDirection('');
       document.body.style.cursor = '';
+      
+      // 리사이징 완료 후 터미널 최종 조정
+      setTimeout(() => {
+        window.dispatchEvent(new Event('terminal-resize'));
+      }, 50);
     };
     
     if (isResizing) {
@@ -280,16 +288,16 @@ export function DraggableWindow({
     bottom: Math.max(0, viewport.height - currentSize.height)
   };
   
-  console.log('Window render:', {
-    sessionId: session.id,
-    sessionPosition: session.position,
-    sessionSize: session.size,
-    currentPosition,
-    currentSize,
-    menuBarHeight: getMenuBarHeight(),
-    viewport,
-    bounds
-  });
+  // console.log('Window render:', {
+  //   sessionId: session.id,
+  //   sessionPosition: session.position,
+  //   sessionSize: session.size,
+  //   currentPosition,
+  //   currentSize,
+  //   menuBarHeight: getMenuBarHeight(),
+  //   viewport,
+  //   bounds
+  // });
 
   return (
     <Draggable
@@ -413,7 +421,7 @@ export function DraggableWindow({
               <InputController 
                 onSendMessage={handleSendMessage}
                 onKeyInput={handleKeyInput}
-                placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈, Esc: 터미널로 전송)"
+                placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송)"
                 disabled={!session.status.isRunning}
               />
             </div>

@@ -20,7 +20,7 @@ interface InputControllerProps {
 export const InputController: React.FC<InputControllerProps> = ({ 
   onSendMessage, 
   onKeyInput,
-  placeholder = "메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈, Esc: 터미널로 전송)",
+  placeholder = "Claude에게 메시지를 입력하세요... (Enter: 전송)",
   buttonText = "전송",
   disabled = false
 }) => {
