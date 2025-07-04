@@ -423,6 +423,8 @@ export function DraggableWindow({
                 onKeyInput={handleKeyInput}
                 placeholder="Claude에게 메시지를 입력하세요... (Enter: 전송)"
                 disabled={!session.status.isRunning}
+                sessionId={session.id}
+                socketId={socket?.id}
               />
             </div>
           

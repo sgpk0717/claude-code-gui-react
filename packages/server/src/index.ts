@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { API_PORT, Message, MultiSessionSocketEvents, ClaudeSession } from '@claude-gui/shared';
 import { ClaudeManager } from './claude-manager';
 import { MultiSessionManager } from './multi-session-manager';
@@ -26,22 +27,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 이미지 업로드 디렉토리 생성
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Multer 설정
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Multer 설정 - 메모리 스토리지로 변경 (나중에 세션 디렉토리에 저장)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage,
@@ -82,24 +69,56 @@ app.get('/api/health', (req, res) => {
 });
 
 // 이미지 업로드 엔드포인트
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  
-  const filePath = req.file.path;
-  const fileName = req.file.filename;
-  
-  res.json({ 
-    success: true, 
-    path: filePath,
-    filename: fileName,
-    url: `/uploads/${fileName}`
-  });
-});
 
-// 업로드된 이미지 제공
-app.use('/uploads', express.static(uploadDir));
+  const sessionId = req.body.sessionId;
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  // Socket ID 추출 (요청 헤더에서 가져오기)
+  const socketId = req.headers['x-socket-id'] as string;
+  if (!socketId) {
+    return res.status(400).json({ error: 'Socket ID is required' });
+  }
+
+  const sessionManager = clientSessionManagers.get(socketId);
+  if (!sessionManager) {
+    return res.status(400).json({ error: 'Session manager not found' });
+  }
+
+  const session = sessionManager.getSession(sessionId);
+  if (!session) {
+    return res.status(400).json({ error: 'Session not found' });
+  }
+
+  // 세션의 작업 디렉토리에 .claude-images 폴더 생성
+  const imagesDir = path.join(session.workingDirectory, '.claude-images');
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+  }
+
+  // 파일 저장
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  const fileName = uniqueSuffix + path.extname(req.file.originalname);
+  const filePath = path.join(imagesDir, fileName);
+
+  try {
+    fs.writeFileSync(filePath, req.file.buffer);
+    
+    res.json({ 
+      success: true, 
+      path: filePath,
+      filename: fileName
+    });
+  } catch (error) {
+    console.error('Failed to save image:', error);
+    res.status(500).json({ error: 'Failed to save image' });
+  }
+});
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
