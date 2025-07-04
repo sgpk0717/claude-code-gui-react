@@ -82,5 +82,5 @@ export const LAYOUT_TEMPLATES = {
 // 기본 창 설정
 export const DEFAULT_WINDOW_SIZE = { width: 50, height: 60 }; // 화면의 50% 너비, 60% 높이
 export const DEFAULT_WINDOW_POSITION = { x: 25, y: 20 }; // 중앙 배치: (100-50)/2 = 25%, (100-60)/2 = 20%
-export const MIN_WINDOW_SIZE = { width: 400, height: 300 };
+export const MIN_WINDOW_SIZE = { width: 465, height: 300 };
 export const MENU_BAR_HEIGHT = 60;

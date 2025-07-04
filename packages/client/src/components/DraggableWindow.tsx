@@ -210,12 +210,12 @@ export function DraggableWindow({
       let newX = positionStart.x;
       let newY = positionStart.y;
       
-      // 방향에 따른 크기 조절
+      // 방향에 따른 크기 조절 (최소 너비 465px)
       if (resizeDirection.includes('right')) {
-        newWidth = Math.max(400, sizeStart.width + deltaX);
+        newWidth = Math.max(465, sizeStart.width + deltaX);
       }
       if (resizeDirection.includes('left')) {
-        newWidth = Math.max(400, sizeStart.width - deltaX);
+        newWidth = Math.max(465, sizeStart.width - deltaX);
         newX = positionStart.x + (sizeStart.width - newWidth);
       }
       if (resizeDirection.includes('bottom')) {
